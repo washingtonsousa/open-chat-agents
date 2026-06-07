@@ -4,17 +4,17 @@ from asyncio import CancelledError
 from collections.abc import AsyncGenerator
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.models.message import Message, MessageRole
 from app.repositories.message_repo import MessageRepository
 from app.repositories.session_repo import SessionRepository
+from app.services.agent_service import AgentService
+from app.services.graph_service import stream_graph
 from app.services.moderation_service import ModerationService
 from app.services.session_service import SessionService
 
-SYSTEM_PROMPT = """Você é um assistente prestativo e amigável.
+DEFAULT_SYSTEM_PROMPT = """Você é um assistente prestativo e amigável.
 Regras que você deve seguir sem exceção:
 - Nunca use linguagem ofensiva, palavrões ou termos inadequados.
 - Não responda perguntas que contenham linguagem inapropriada.
@@ -26,21 +26,28 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
+def _serialize_message(msg: Message) -> dict:
+    return {
+        "id": str(msg.id),
+        "session_id": str(msg.session_id),
+        "role": msg.role,
+        "content": msg.content,
+        "created_at": msg.created_at.isoformat(),
+    }
+
+
 class ChatService:
     def __init__(self, db: AsyncSession) -> None:
         self._message_repo = MessageRepository(db)
         self._session_service = SessionService(db)
         self._session_repo = SessionRepository(db)
+        self._agent_service = AgentService(db)
         self._moderation = ModerationService()
-        self._llm = ChatOllama(
-            model=settings.llm_model,
-            base_url=settings.ollama_base_url,
-        )
 
     async def stream_message(
         self, session_id: uuid.UUID, user_input: str
     ) -> AsyncGenerator[str, None]:
-        await self._session_service.get_session(session_id)
+        session = await self._session_service.get_session(session_id)
 
         user_message = await self._message_repo.create(
             session_id=session_id,
@@ -54,13 +61,11 @@ class ChatService:
             yield _sse("chunk", {"content": full_content})
         else:
             full_content = ""
-            lc_messages = await self._build_messages(session_id)
+            lc_messages = await self._build_messages(session_id, session.agent)
             try:
-                async for chunk in self._llm.astream(lc_messages):
-                    token = str(chunk.content)
-                    if token:
-                        full_content += token
-                        yield _sse("chunk", {"content": token})
+                async for token in stream_graph(session.agent, lc_messages):
+                    full_content += token
+                    yield _sse("chunk", {"content": token})
             except CancelledError:
                 pass
 
@@ -75,22 +80,14 @@ class ChatService:
         await self._session_service.get_session(session_id)
         return await self._message_repo.list_by_session(session_id)
 
-    async def _build_messages(self, session_id: uuid.UUID) -> list:
+    async def _build_messages(self, session_id: uuid.UUID, agent) -> list:
+        system_prompt = agent.system_prompt if agent else DEFAULT_SYSTEM_PROMPT
         history = await self._message_repo.list_by_session(session_id)
-        lc_messages = [SystemMessage(content=SYSTEM_PROMPT)]
+
+        lc_messages = [SystemMessage(content=system_prompt)]
         for msg in history:
             if msg.role == MessageRole.user:
                 lc_messages.append(HumanMessage(content=msg.content))
             else:
                 lc_messages.append(AIMessage(content=msg.content))
         return lc_messages
-
-
-def _serialize_message(msg: Message) -> dict:
-    return {
-        "id": str(msg.id),
-        "session_id": str(msg.session_id),
-        "role": msg.role,
-        "content": msg.content,
-        "created_at": msg.created_at.isoformat(),
-    }

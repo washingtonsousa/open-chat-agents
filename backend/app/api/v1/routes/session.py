@@ -15,7 +15,7 @@ async def create_session(
     payload: SessionCreate, db: AsyncSession = Depends(get_db)
 ) -> SessionResponse:
     service = SessionService(db)
-    session = await service.create_session(title=payload.title)
+    session = await service.create_session(title=payload.title, agent_id=payload.agent_id)
     return SessionResponse.model_validate(session)
 
 

@@ -1,11 +1,15 @@
 import type {
+  Agent,
+  AgentCreate,
+  AgentListResponse,
   ChatHistoryResponse,
   Message,
+  OllamaModelsResponse,
   Session,
   SessionListResponse,
 } from "@/types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 const API = `${BASE_URL}/api/v1`;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -17,20 +21,38 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(error.detail ?? "Erro na requisição");
   }
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
 export const sessionApi = {
-  create: (title = "Nova conversa") =>
+  create: (title = "Nova conversa", agent_id: string | null = null) =>
     request<Session>("/sessions/", {
       method: "POST",
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ title, agent_id }),
     }),
 
   list: () => request<SessionListResponse>("/sessions/"),
 
   delete: (id: string) =>
     request<void>(`/sessions/${id}`, { method: "DELETE" }),
+};
+
+export const agentApi = {
+  create: (payload: AgentCreate) =>
+    request<Agent>("/agents/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  list: () => request<AgentListResponse>("/agents/"),
+
+  delete: (id: string) =>
+    request<void>(`/agents/${id}`, { method: "DELETE" }),
+};
+
+export const ollamaApi = {
+  listModels: () => request<OllamaModelsResponse>("/ollama/models"),
 };
 
 interface StreamCallbacks {

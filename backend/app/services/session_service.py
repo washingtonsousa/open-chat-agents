@@ -11,8 +11,8 @@ class SessionService:
     def __init__(self, db: AsyncSession) -> None:
         self._repo = SessionRepository(db)
 
-    async def create_session(self, title: str = "Nova conversa") -> Session:
-        return await self._repo.create(title=title)
+    async def create_session(self, title: str = "Nova conversa", agent_id: uuid.UUID | None = None) -> Session:
+        return await self._repo.create(title=title, agent_id=agent_id)
 
     async def get_session(self, session_id: uuid.UUID) -> Session:
         session = await self._repo.get_by_id(session_id)
