@@ -1,6 +1,6 @@
 # open-chat-agents
 
-A production-ready chatbot POC built with **FastAPI**, **Next.js**, **LangChain**, and **Gemma3** — demonstrating how to architect AI-powered conversational systems with clean separation of concerns, streaming responses, and persistent chat history.
+A production-ready chatbot POC built with **FastAPI**, **Next.js**, **LangChain**, and **Ollama** — demonstrating how to architect AI-powered conversational systems with clean separation of concerns, streaming responses, and persistent chat history.
 
 ---
 
@@ -8,7 +8,7 @@ A production-ready chatbot POC built with **FastAPI**, **Next.js**, **LangChain*
 
 This project showcases a full-stack conversational AI solution designed for real-world scenarios. It demonstrates:
 
-- **LLM orchestration** via LangChain with a local Gemma3 model (Ollama)
+- **LLM orchestration** via LangChain with any model served locally by Ollama
 - **Streaming responses** using Server-Sent Events (SSE) for a responsive chat experience
 - **Conversation persistence** with PostgreSQL storing sessions and message history
 - **Content moderation** guard that rejects inappropriate language before hitting the LLM
@@ -23,7 +23,7 @@ This project showcases a full-stack conversational AI solution designed for real
 | Frontend | Next.js 15, React 19, Tailwind CSS |
 | Backend | FastAPI, Python 3.12 |
 | LLM Orchestration | LangChain + LangChain-Ollama |
-| LLM | Gemma3 (via Ollama) |
+| LLM | Any model via Ollama (default: `gemma3`) |
 | Database | PostgreSQL 16 |
 | ORM | SQLAlchemy 2 (async) |
 | Migrations | Alembic |
@@ -49,7 +49,7 @@ frontend/                          backend/
 Browser → Next.js → POST /api/v1/chat/stream → ChatService
                                                     ├── ModerationService  (guard)
                                                     ├── MessageRepository  (persist)
-                                                    └── LangChain + Gemma3 (generate)
+                                                    └── LangChain + Ollama (generate)
                                                             ↓ SSE stream
 Browser ← chunks arriving word by word ←────────────────────
 ```
@@ -74,14 +74,33 @@ git clone https://github.com/washingtonsousa/open-chat-agents.git
 cd open-chat-agents
 ```
 
-### 2. Start the LLM
+### 2. Choose and start your LLM
 
-Install Ollama, then pull and serve the Gemma3 model:
+This project works with **any model available on Ollama**. Install Ollama from [ollama.com](https://ollama.com), then pull whichever model you prefer and start the server:
 
 ```bash
+# Examples — pick one:
 ollama pull gemma3
+ollama pull llama3.2
+ollama pull mistral
+ollama pull phi4
+
 ollama serve
 ```
+
+Then set the model name in `backend/.env`:
+
+```env
+LLM_MODEL=gemma3   # replace with the model you pulled
+```
+
+Or edit it directly in `backend/app/core/config.py`:
+
+```python
+llm_model: str = "gemma3"  # change to your chosen model
+```
+
+> Any model listed at [ollama.com/library](https://ollama.com/library) is compatible as long as it supports chat/instruct interactions.
 
 ### 3. Start PostgreSQL
 
