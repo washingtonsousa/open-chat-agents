@@ -4,7 +4,7 @@ import type {
   AgentListResponse,
   ChatHistoryResponse,
   Message,
-  OllamaModelsResponse,
+  ModelsResponse,
   Session,
   SessionListResponse,
 } from "@/types";
@@ -51,8 +51,9 @@ export const agentApi = {
     request<void>(`/agents/${id}`, { method: "DELETE" }),
 };
 
-export const ollamaApi = {
-  listModels: () => request<OllamaModelsResponse>("/ollama/models"),
+export const modelsApi = {
+  listOllama: () => request<ModelsResponse>("/models/ollama"),
+  listBedrock: () => request<ModelsResponse>("/models/bedrock"),
 };
 
 interface StreamCallbacks {

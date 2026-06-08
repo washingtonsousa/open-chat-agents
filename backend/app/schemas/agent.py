@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class AgentCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
+    provider: str = Field(default="ollama", pattern="^(ollama|bedrock)$")
     llm_model: str = Field(min_length=1, max_length=100)
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: int | None = Field(default=None, gt=0)
@@ -19,6 +20,7 @@ class AgentCreate(BaseModel):
 
 class AgentUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
+    provider: str | None = Field(default=None, pattern="^(ollama|bedrock)$")
     llm_model: str | None = Field(default=None, min_length=1, max_length=100)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     max_tokens: int | None = Field(default=None, gt=0)
@@ -28,6 +30,7 @@ class AgentUpdate(BaseModel):
 class AgentResponse(BaseModel):
     id: uuid.UUID
     name: str
+    provider: str
     llm_model: str
     temperature: float
     max_tokens: int | None

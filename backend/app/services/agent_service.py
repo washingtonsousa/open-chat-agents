@@ -21,6 +21,7 @@ class AgentService:
             )
         return await self._repo.create(
             name=payload.name,
+            provider=payload.provider,
             llm_model=payload.llm_model,
             temperature=payload.temperature,
             max_tokens=payload.max_tokens,

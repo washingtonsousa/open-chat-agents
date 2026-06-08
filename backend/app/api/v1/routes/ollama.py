@@ -3,21 +3,23 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.services.graph_service import list_bedrock_models
 
-router = APIRouter(prefix="/ollama", tags=["ollama"])
+router = APIRouter(prefix="/models", tags=["models"])
 
 
-class OllamaModel(BaseModel):
+class ModelInfo(BaseModel):
     name: str
+    provider: str | None = None
     size: int | None = None
 
 
-class OllamaModelsResponse(BaseModel):
-    models: list[OllamaModel]
+class ModelsResponse(BaseModel):
+    models: list[ModelInfo]
 
 
-@router.get("/models", response_model=OllamaModelsResponse)
-async def list_models() -> OllamaModelsResponse:
+@router.get("/ollama", response_model=ModelsResponse)
+async def list_ollama_models() -> ModelsResponse:
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(f"{settings.ollama_base_url}/api/tags")
@@ -30,7 +32,15 @@ async def list_models() -> OllamaModelsResponse:
         )
 
     models = [
-        OllamaModel(name=m["name"], size=m.get("size"))
+        ModelInfo(name=m["name"], provider="ollama", size=m.get("size"))
         for m in data.get("models", [])
     ]
-    return OllamaModelsResponse(models=models)
+    return ModelsResponse(models=models)
+
+
+@router.get("/bedrock", response_model=ModelsResponse)
+async def list_bedrock_models_endpoint() -> ModelsResponse:
+    models = list_bedrock_models()
+    return ModelsResponse(
+        models=[ModelInfo(name=m["name"], provider=m.get("provider")) for m in models]
+    )

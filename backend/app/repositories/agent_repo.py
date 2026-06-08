@@ -10,9 +10,10 @@ class AgentRepository:
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def create(self, name: str, llm_model: str, temperature: float, max_tokens: int | None, system_prompt: str) -> Agent:
+    async def create(self, name: str, provider: str, llm_model: str, temperature: float, max_tokens: int | None, system_prompt: str) -> Agent:
         agent = Agent(
             name=name,
+            provider=provider,
             llm_model=llm_model,
             temperature=temperature,
             max_tokens=max_tokens,

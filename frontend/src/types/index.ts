@@ -1,6 +1,9 @@
+export type LLMProvider = "ollama" | "bedrock";
+
 export interface Agent {
   id: string;
   name: string;
+  provider: LLMProvider;
   llm_model: string;
   temperature: number;
   max_tokens: number | null;
@@ -11,6 +14,7 @@ export interface Agent {
 
 export interface AgentCreate {
   name: string;
+  provider: LLMProvider;
   llm_model: string;
   temperature: number;
   max_tokens: number | null;
@@ -22,13 +26,14 @@ export interface AgentListResponse {
   total: number;
 }
 
-export interface OllamaModel {
+export interface ModelInfo {
   name: string;
+  provider: string | null;
   size: number | null;
 }
 
-export interface OllamaModelsResponse {
-  models: OllamaModel[];
+export interface ModelsResponse {
+  models: ModelInfo[];
 }
 
 export interface Session {

@@ -12,6 +12,11 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # AWS — opcional: se não definido, boto3 usa IAM profile automaticamente
+    aws_region: str = "us-east-1"
+    aws_access_key_id: str | None = None
+    aws_secret_access_key: str | None = None
+
     class Config:
         env_file = ".env"
 
